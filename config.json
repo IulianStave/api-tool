@@ -1,10 +1,10 @@
 {
-  "API_KEY": "Clockify API KEY",
-  "URL_BASE": "Clockify API root url",
-  "WORKSPACE_ID": "source workspace id",
-  "workspace_name_dest": "destination workspace name",
-  "user_name": "user name for which you copy time entries",
-  "user_name_dest": "user name in destination workspace, usually the same as user_name",
-  "project_name_source": "Source project name to filter entries by",
-  "project_name_dest": "Destination project name, usually the same as project_name_value"
+  "api_key": "F19HFUx5hMN3sEY",
+  "url_base": "https://api.clockify.me/api/v1",
+  "workspace_id": "74b0798723a75b7d61ea1c6b",
+  "workspace_name_dest": "Workspace Dest",
+  "user_name": "John Smith",
+  "user_name_dest": "John W Smith",
+  "project_name_source": "App development",
+  "project_name_dest": "App development"
 }

@@ -4,10 +4,18 @@ import sys
 from os import path
 
 default_config_json = 'local.config.json'
+api_key = ''
+url_base = ''
+workspace_id = ''
+workspace_name_dest = ''
+user_name = ''
+user_name_dest = ''
+project_name_source = ''
+project_name_dest = ''
 
 
 def get_user_id(workspace_id, user_name):
-    get_users_path = '/workspaces/{}/users'.format(workspace_id)
+    get_users_path = f'/workspaces/{workspace_id}/users'
     URL = url_base + get_users_path
     resp = requests.get(
         url=URL,
@@ -15,27 +23,27 @@ def get_user_id(workspace_id, user_name):
             'X-Api-key': api_key,
         },
     )
-    print('\nReading user entries in workspace {}... [Status code: {}] \n'.format(
-        workspace_id, resp.status_code))
+    print(f'Getting users in workspace {workspace_id}... \
+        [Status code: {resp.status_code}]')
     if resp.status_code == 200:
         data = resp.json()
         # print('Project entries in workspace {} for project {}'.format(workspace_id, project_name))
-        #result = [entry for entry in data if entry['name']==project_name][0]['id']
-        #id = [entry for entry in data if entry['name']==project_name][0]['id']
+        # result = [entry for entry in data if entry['name']==project_name][0]['id']
+        try:
+            return [entry['id'] for entry in data if entry['name'] == user_name][0]
+        except IndexError:
+            return 'Index Error'
+        # id = filter(lambda x: x['name'] == user_name, data)['id']
+        '''
         for entry in data:
             if entry['name'] == user_name:
                 return entry['id']
         return 'Error, user {} not found in workspace {}'.format(user_name, workspace_id)
-        # return '\nReading project entries in workspace... [Status code: {}] \n'.format(resp.status_code
-        # retrun entry['id'] for entry in data if entry['name']==project_name
-
-# Get projectId in destination workspace based on name
-## GET /workspaces/{workspaceId}/projects
+        '''
 
 
 def get_project_id(workspace_id, project_name):
-    #print('\nReading project entries in workspace... [Status code: {}] \n'.format(resp.status_code))
-    get_projects_path = '/workspaces/{}/projects'.format(workspace_id)
+    get_projects_path = f'/workspaces/{workspace_id}/projects'
     URL = url_base + get_projects_path
     resp = requests.get(
         url=URL,
@@ -43,19 +51,18 @@ def get_project_id(workspace_id, project_name):
             'X-Api-key': api_key,
         },
     )
-    print('\nReading project entries in workspace {}... [Status code: {}] \n'.format(
-        workspace_id, resp.status_code))
+    print(f'Reading projects... [Status code: {resp.status_code}]')
     if resp.status_code == 200:
         data = resp.json()
         # print('Project entries in workspace {} for project {}'.format(workspace_id, project_name))
-        #result = [entry for entry in data if entry['name']==project_name][0]['id']
-        #id = [entry for entry in data if entry['name']==project_name][0]['id']
+        # result = [entry for entry in data if entry['name']==project_name][0]['id']
+        # id = [entry for entry in data if entry['name']==project_name][0]['id']
         for entry in data:
             if entry['name'] == project_name:
                 print('>> Project {} found, id: {}'.format(
                     project_name, entry['id']))
                 return entry['id']
-        return 'Error, {project_name} not found in workspace {workspace_id}'
+        return f'Error, {project_name} not found in workspace {workspace_id}'
         # retrun entry['id'] for entry in data if entry['name']==project_name
 
 
@@ -73,6 +80,11 @@ def put_new_time_entry(workspace_id, post_data):
     print(f'>>>>> Success! New time entry on {workspace_id} has been created'
           if resp_add.status_code == 201 else f'POST {PATH_ADD_TE} error code {resp_add.status_code}'
           )
+
+
+def delete_entries():
+    # delete entries
+    print('Delete entries')
 
 
 def add_workspace(workspace_name):
@@ -107,10 +119,11 @@ def add_workspace(workspace_name):
         workspace_id_dest = [workspace['id']
                              for workspace in data if workspace['name'] == workspace_name][0]
         print(
-            f'Workspace \'{workspace_name}\' already exists, id: {workspace_id_dest}')
+            f'Workspace \'{workspace_name}\' already exists, id: {workspace_id_dest}'
+        )
         return workspace_id_dest
     else:
-        print('POST /workspaces/ error code {}'.format(resp.status_code))
+        print(f'POST /workspaces/ error code {resp.status_code}')
         return 'Error'
 
 
@@ -155,8 +168,7 @@ while not ended:
         }
     )
 
-    print('\nReading Time entries in workspace... [Status code: {}] \n'.format(
-        resp.status_code))
+    print(f'Get Time entries in workspace...[Status code: {resp.status_code}]')
     counter = 0
     if resp.status_code == 200:
         data = resp.json()
@@ -179,10 +191,11 @@ while not ended:
                 new_entry['userId'] = user_id_dest
                 put_new_time_entry(workspace_id_dest, new_entry)
 
-        print('Counter: ', counter)
+        print(f'Counter: {counter}')
         print(type(resp))
         print(len(data))
         if len(data) < 50:
             ended = True
         else:
             page_number += 1
+print(page_number)

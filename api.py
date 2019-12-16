@@ -42,7 +42,7 @@ def get_project_id(workspace_id, project_name):
             'X-Api-key': api_key,
         }
     )
-    print(f'Reading projects... [Status code: {resp.status_code}]')
+    # print(f'Reading projects... [Status code: {resp.status_code}]')
     if resp.status_code == 200:
         data = resp.json()
         try:
@@ -70,23 +70,6 @@ def get_workspace_id(workspace):
             return f'Index Error: {workspace} not found'
 
 
-def add_time_entry(workspace_id, post_data):
-    PATH_ADD_TE = f'/workspaces/{workspace_id}/time-entries'
-    URL = f'{url_base}{PATH_ADD_TE}'
-    resp_add = requests.post(
-        url=URL,
-        headers={
-            'X-Api-key': api_key,
-            'Content-type': 'application/json',
-        },
-        json=post_data
-    )
-    print(f'>>> New time entry on {workspace_id} has been created'
-          if resp_add.status_code == 201 
-          else f'POST {PATH_ADD_TE} error code {resp_add.status_code}'
-          )
-
-
 def delete_entry(workspace_id, entry_id):
     # DELETE /workspaces/{workspaceId}/time-entries/{id}
     PATH = f'/workspaces/{workspace_id}/time-entries/{entry_id}'
@@ -96,7 +79,9 @@ def delete_entry(workspace_id, entry_id):
         url=URL,
         headers={
             'X-Api-key': api_key,
-        }
+            'Content-type': 'application/json',
+        },
+        timeout=0.10
     )
     print(f'>>> Time entry {entry_id} on {workspace_id} deleted'
           if r.status_code == 204
@@ -106,38 +91,40 @@ def delete_entry(workspace_id, entry_id):
 def delete_entries(workspace_id, user_name, project_name):
     # GET /workspaces/{workspaceId}/user/{userId}/time-entries
     user_id_source = get_user_id(workspace_id, user_name)
+    project_id = get_project_id(workspace_id, project_name)
     page_number = 1
     ended = False
+    total_count = 0
     while not ended:
         PATH = '/workspaces/{}/user/{}/time-entries/?page={}'.format(
             workspace_id, user_id_source, page_number)
-        print(PATH)
         URL = f'{url_base}{PATH}'
         resp = requests.get(
             url=URL,
             headers={
                 'X-Api-key': api_key,
-            }
+            },
         )
-        print(
-            f'Get Time entries in workspace...[Status code: {resp.status_code}]')
+        print(f'Get time page {page_number} [Status code: {resp.status_code}]')
         counter = 0
         if resp.status_code == 200:
             data = resp.json()
             total_entries = len(data)
-            project_id = get_project_id(workspace_id, project_name)
-            print(f'>>> {total_entries} Entries on page for all projects')
+            print(f'>>> {total_entries} entries on page for all projects')
             for entry in data:
                 if entry['projectId'] == project_id:
                     counter += 1
                     # print(f'Entry found id {entry["id"]}')
                     delete_entry(workspace_id, entry['id'])
-            print(f'Counter: {counter}')
+            print(f'{counter} out of {total_entries} deleted')
+            total_count += counter
             if total_entries < 50:
                 ended = True
             else:
                 page_number += 1
-    print(f'{page_number} pages parsed')
+    total_entries_parsed = total_entries + 50*(page_number-1)
+    print(f'{page_number} pages parsed, or {total_entries_parsed} entries')
+    print(f'{total_count} deleted')
 
 
 def add_workspace(workspace_name):
@@ -187,12 +174,33 @@ def read_config():
     return clockify_data
 
 
+def add_time_entry(workspace_id, post_data):
+    PATH_ADD_TE = f'/workspaces/{workspace_id}/time-entries'
+    URL = f'{url_base}{PATH_ADD_TE}'
+    resp_add = requests.post(
+        url=URL,
+        headers={
+            'X-Api-key': api_key,
+            'Content-type': 'application/json',
+        },
+        json=post_data
+    )
+    print(f'>>> New time entry on {workspace_id} has been created'
+          if resp_add.status_code == 201
+          else f'POST {PATH_ADD_TE} error code {resp_add.status_code}'
+          )
+
+
 def copy_time_entries(workspace_id, user_name, project_name,
                       workspace_id_dest, user_name_dest, project_name_dest):
-    # get time entries for the project, user
+    # GET /workspaces/{workspaceId}/user/{userId}/time-entries
     user_id_source = get_user_id(workspace_id, user_name)
+    project_id_source = get_project_id(
+                workspace_id, project_name_source)
+    user_id_dest = get_user_id(workspace_id_dest, user_name_dest)
     page_number = 1
     ended = False
+    total_count = 0
     while not ended:
         PATH = '/workspaces/{}/user/{}/time-entries/?page={}'.format(
             workspace_id, user_id_source, page_number)
@@ -203,15 +211,12 @@ def copy_time_entries(workspace_id, user_name, project_name,
                 'X-Api-key': api_key,
             }
         )
-        print(f'Getting time entries...[Status code: {resp.status_code}]')
+        print(f'Get time page {page_number} [Status code: {resp.status_code}]')
         counter = 0
         if resp.status_code == 200:
             data = resp.json()
             total_entries = len(data)
-            print(f'>>> {total_entries} Entries found on page for all projects')
-            project_id_source = get_project_id(
-                workspace_id, project_name_source)
-            user_id_dest = get_user_id(workspace_id_dest, user_name_dest)
+            print(f'>>> {total_entries} Entries on page for all projects')
             for entry in data:
                 if entry['projectId'] == project_id_source:
                     counter += 1
@@ -225,12 +230,15 @@ def copy_time_entries(workspace_id, user_name, project_name,
                     new_entry['projectId'] = project_id_dest
                     new_entry['userId'] = user_id_dest
                     add_time_entry(workspace_id_dest, new_entry)
-            print(f'Counter: {counter}')
+            print(f'{counter} out of {total_entries} copied')
+            total_count += counter
             if total_entries < 50:
                 ended = True
             else:
                 page_number += 1
-    print(f'{page_number} pages parsed')
+    total_entries_parsed = total_entries + 50*(page_number-1)
+    print(f'{page_number} pages parsed, or {total_entries_parsed} entries')
+    print(f'{total_count} copied')
 
 
 def main():
@@ -250,20 +258,20 @@ workspace_id_dest = get_workspace_id(workspace_name_dest)
 #     exit()
 user_id_source = get_user_id(workspace_id, user_name)
 project_id_dest = get_project_id(workspace_id_dest, project_name_dest)
-print(f'User passed in json is {user_name} id: {user_id_source}')
-myuser = 'Some name'
-print(f'Checking for user id: {get_user_id(workspace_id, myuser)}')
+# myuser = 'Some name'
+# print(f'Checking for user id: {get_user_id(workspace_id, myuser)}')
 # copy_time_entries(workspace_id, user_name, project_name_source,
 #                   workspace_id_dest, user_name_dest, project_name_dest)
-print(f'>>>> Destination workspace {workspace_id_dest} \
-::: user id: {get_user_id(workspace_id_dest, myuser)}')
 # user_del = 'Some name'
-user_del = 'Ion'
-print(f'Checking for user id: {get_user_id(workspace_id, user_del)}')
-delete_entries(workspace_id_dest, user_del, project_name_dest)
+
+# print(f'Checking for user id: {get_user_id(workspace_id, user_del)}')
+# delete_entries(workspace_id_dest, user_del, project_name_dest)
 # copy_time_entries(workspace_id, user_name, project_name_source,
 #                   workspace_id_dest, user_name_dest, project_name_dest)
-ws = 'Beta workspace'
-print(f'Checking for workspace {ws} id: {get_workspace_id(ws)}')
-# copy_time_entries(workspace_id, user_name, project_name_source,
-#                   workspace_id_dest, user_name_dest, project_name_dest)
+# ws = 'Beta workspace'
+# print(f'Checking for workspace {ws} id: {get_workspace_id(ws)}')
+copy_time_entries(workspace_id, user_name, project_name_source,
+                  workspace_id_dest, user_name_dest, project_name_dest)
+
+# user_del = 'some user'
+# delete_entries(workspace_id_dest, user_del, project_name_dest)

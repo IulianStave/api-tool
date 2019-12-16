@@ -6,5 +6,6 @@
   "user_name": "John Smith",
   "user_name_dest": "John W Smith",
   "project_name_source": "App development",
-  "project_name_dest": "App development"
+  "project_name_dest": "App development",
+  "user_del": "Some user"
 }

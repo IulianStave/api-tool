@@ -12,6 +12,7 @@ user_name = ''
 user_name_dest = ''
 project_name_source = ''
 project_name_dest = ''
+user_del = ''
 
 
 def get_user_id(workspace_id, user_name):
@@ -79,9 +80,8 @@ def delete_entry(workspace_id, entry_id):
         url=URL,
         headers={
             'X-Api-key': api_key,
-            'Content-type': 'application/json',
-        },
-        timeout=0.10
+            'Content-type': 'application/json'
+        }
     )
     print(f'>>> Time entry {entry_id} on {workspace_id} deleted'
           if r.status_code == 204
@@ -270,8 +270,9 @@ project_id_dest = get_project_id(workspace_id_dest, project_name_dest)
 #                   workspace_id_dest, user_name_dest, project_name_dest)
 # ws = 'Beta workspace'
 # print(f'Checking for workspace {ws} id: {get_workspace_id(ws)}')
-copy_time_entries(workspace_id, user_name, project_name_source,
-                  workspace_id_dest, user_name_dest, project_name_dest)
 
-# user_del = 'some user'
-# delete_entries(workspace_id_dest, user_del, project_name_dest)
+# copy_time_entries(workspace_id, user_name, project_name_source,
+#                   workspace_id_dest, user_name_dest, project_name_dest)
+
+# user_del read from config too
+delete_entries(workspace_id_dest, user_del, project_name_dest)

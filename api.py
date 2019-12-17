@@ -96,8 +96,10 @@ def delete_entries(workspace_id, user_name, project_name):
     ended = False
     total_count = 0
     while not ended:
-        PATH = '/workspaces/{}/user/{}/time-entries/?page={}'.format(
-            workspace_id, user_id_source, page_number)
+        # PATH = '/workspaces/{}/user/{}/time-entries/?page={}'.format(
+        #     workspace_id, user_id_source, page_number)
+        PATH = (f'/workspaces/{workspace_id}/user/{user_id_source}'
+                f'/time-entries/?page={page_number}')
         URL = f'{url_base}{PATH}'
         resp = requests.get(
             url=URL,
@@ -114,7 +116,8 @@ def delete_entries(workspace_id, user_name, project_name):
             for entry in data:
                 if entry['projectId'] == project_id:
                     counter += 1
-                    # print(f'Entry found id {entry["id"]}')
+                    print(f'Entry {entry["description"]} '
+                          f'id {entry["id"]} will be deleted')
                     delete_entry(workspace_id, entry['id'])
             print(f'{counter} out of {total_entries} deleted')
             total_count += counter
@@ -185,7 +188,7 @@ def add_time_entry(workspace_id, post_data):
         },
         json=post_data
     )
-    print(f'>>> New time entry on {workspace_id} has been created'
+    print(f'>>> Added time entry {post_data["description"]}'
           if resp_add.status_code == 201
           else f'POST {PATH_ADD_TE} error code {resp_add.status_code}'
           )
@@ -196,14 +199,14 @@ def copy_time_entries(workspace_id, user_name, project_name,
     # GET /workspaces/{workspaceId}/user/{userId}/time-entries
     user_id_source = get_user_id(workspace_id, user_name)
     project_id_source = get_project_id(
-                workspace_id, project_name_source)
+        workspace_id, project_name_source)
     user_id_dest = get_user_id(workspace_id_dest, user_name_dest)
     page_number = 1
     ended = False
     total_count = 0
     while not ended:
-        PATH = '/workspaces/{}/user/{}/time-entries/?page={}'.format(
-            workspace_id, user_id_source, page_number)
+        PATH = (f'/workspaces/{workspace_id}/user/{user_id_source}'
+                f'/time-entries/?page={page_number}')
         URL = f'{url_base}{PATH}'
         resp = requests.get(
             url=URL,

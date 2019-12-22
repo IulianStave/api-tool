@@ -247,6 +247,31 @@ def copy_time_entries(workspace_id, user_name, project_name,
 def main():
     if read_config() == 'Error':
         exit()
+    # read_config()
+    workspace_id_dest = get_workspace_id(workspace_name_dest)
+    # workspace_id_dest = add_workspace(workspace_name_dest)
+    # if workspace_id_dest == 'Error':
+    #     exit()
+    user_id_source = get_user_id(workspace_id, user_name)
+    project_id_dest = get_project_id(workspace_id_dest, project_name_dest)
+    # myuser = 'Some name'
+    # print(f'Checking for user id: {get_user_id(workspace_id, myuser)}')
+    # copy_time_entries(workspace_id, user_name, project_name_source,
+    #                   workspace_id_dest, user_name_dest, project_name_dest)
+    # user_del = 'Some name'
+
+    # print(f'Checking for user id: {get_user_id(workspace_id, user_del)}')
+    # delete_entries(workspace_id_dest, user_del, project_name_dest)
+    # copy_time_entries(workspace_id, user_name, project_name_source,
+    #                   workspace_id_dest, user_name_dest, project_name_dest)
+    # ws = 'Beta workspace'
+    # print(f'Checking for workspace {ws} id: {get_workspace_id(ws)}')
+
+    # copy_time_entries(workspace_id, user_name, project_name_source,
+    #                   workspace_id_dest, user_name_dest, project_name_dest)
+
+    # user_del read from config too
+    delete_entries(workspace_id_dest, user_del, project_name_dest)
 
 
 if __name__ == "__main__":
@@ -254,28 +279,4 @@ if __name__ == "__main__":
     main()
 
 
-# read_config()
-workspace_id_dest = get_workspace_id(workspace_name_dest)
-# workspace_id_dest = add_workspace(workspace_name_dest)
-# if workspace_id_dest == 'Error':
-#     exit()
-user_id_source = get_user_id(workspace_id, user_name)
-project_id_dest = get_project_id(workspace_id_dest, project_name_dest)
-# myuser = 'Some name'
-# print(f'Checking for user id: {get_user_id(workspace_id, myuser)}')
-# copy_time_entries(workspace_id, user_name, project_name_source,
-#                   workspace_id_dest, user_name_dest, project_name_dest)
-# user_del = 'Some name'
 
-# print(f'Checking for user id: {get_user_id(workspace_id, user_del)}')
-# delete_entries(workspace_id_dest, user_del, project_name_dest)
-# copy_time_entries(workspace_id, user_name, project_name_source,
-#                   workspace_id_dest, user_name_dest, project_name_dest)
-# ws = 'Beta workspace'
-# print(f'Checking for workspace {ws} id: {get_workspace_id(ws)}')
-
-# copy_time_entries(workspace_id, user_name, project_name_source,
-#                   workspace_id_dest, user_name_dest, project_name_dest)
-
-# user_del read from config too
-delete_entries(workspace_id_dest, user_del, project_name_dest)

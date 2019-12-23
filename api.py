@@ -1,6 +1,7 @@
 import requests
 import json
-import sys
+import time
+import argparse
 from os import path
 
 default_config_json = 'local.config.json'
@@ -13,6 +14,7 @@ user_name_dest = ''
 project_name_source = ''
 project_name_dest = ''
 user_del = ''
+config_path = ''
 
 
 def get_user_id(workspace_id, user_name):
@@ -76,6 +78,7 @@ def delete_entry(workspace_id, entry_id):
     PATH = f'/workspaces/{workspace_id}/time-entries/{entry_id}'
     URL = f'{url_base}{PATH}'
     # print(f'Delete entry URL: {URL} \n')
+    time.sleep(1)
     r = requests.delete(
         url=URL,
         headers={
@@ -118,6 +121,9 @@ def delete_entries(workspace_id, user_name, project_name):
                     counter += 1
                     print(f'Entry {entry["description"]} '
                           f'id {entry["id"]} will be deleted')
+                    if counter == 25:
+                        print('Sleep - Pause for 60 seconds')
+                        time.sleep(60)
                     delete_entry(workspace_id, entry['id'])
             print(f'{counter} out of {total_entries} deleted')
             total_count += counter
@@ -157,15 +163,48 @@ def add_workspace(workspace_name):
         return 'Error'
 
 
-def read_config():
-    config_path = default_config_json
-    if len(sys.argv) > 1:
-        config_path = sys.argv[1]
-    print(f'JSON configuration file: \'{config_path}\'')
+def get_args():
+    parser = argparse.ArgumentParser(
+        description='Python script: delete or copy Clockify time entries'
+    )
+    parser.add_argument(
+        '-j',
+        '--json',
+        action="store",
+        dest='config_path',
+        help='Store JSON configuration file'
+        )
+    parser.add_argument(
+        '-d',
+        '--delete',
+        action='store_true',
+        default=False,
+        dest='delete',
+        help='Set a delete operation switch to true')
+    parser.add_argument(
+        '-c',
+        '--copy',
+        action='store_true',
+        default=False,
+        dest='copy',
+        help='Set a copy operation switch to true')
+    parser.add_argument(
+        '-v',
+        '--version',
+        action='version',
+        version='%(prog)s 1.0'
+        )
+    args = parser.parse_args()
+    # print(f'JSON Configuration file = {args.config_path!r}')
+    print(f'delete                  = {args.delete!r}')
+    print(f'copy                    = {args.copy!r}')
+    return args
+
+
+def read_config(config_path=default_config_json):
     if not path.exists(config_path):
-        print(
-            f'JSON configuration file \'{config_path}\' not found')
-        print('It should follow the \'config.json\' structure')
+        print(f'JSON configuration file {config_path!r} not found')
+        print(f'It should follow the {default_config_json!r} structure')
         return 'Error'
     with (open(config_path)) as file:
         clockify_data = json.load(file)
@@ -201,6 +240,7 @@ def copy_time_entries(workspace_id, user_name, project_name,
     project_id_source = get_project_id(
         workspace_id, project_name_source)
     user_id_dest = get_user_id(workspace_id_dest, user_name_dest)
+    project_id_dest = get_project_id(workspace_id_dest, project_name_dest)
     page_number = 1
     ended = False
     total_count = 0
@@ -245,9 +285,20 @@ def copy_time_entries(workspace_id, user_name, project_name,
 
 
 def main():
+    config_path = default_config_json
+    args = get_args()
+    if args.config_path:
+        config_path = args.config_path
+    print(f'JSON configuration file = {config_path!r}')
+    
+    if args.copy:
+        print(f'Action chosen: copy time entries')
+    if args.delete:
+        print(f'Action chosen: delete time entries')
+    if config_path:
+        print(f'Config file passed as cmd line param {config_path}')
     if read_config() == 'Error':
         exit()
-    # read_config()
     workspace_id_dest = get_workspace_id(workspace_name_dest)
     # workspace_id_dest = add_workspace(workspace_name_dest)
     # if workspace_id_dest == 'Error':
@@ -266,13 +317,13 @@ def main():
     #                   workspace_id_dest, user_name_dest, project_name_dest)
     # ws = 'Beta workspace'
     # print(f'Checking for workspace {ws} id: {get_workspace_id(ws)}')
+    '''
+    copy_time_entries(workspace_id, user_name, project_name_source,
+                        workspace_id_dest, user_name_dest, project_name_dest)
 
-    # copy_time_entries(workspace_id, user_name, project_name_source,
-    #                   workspace_id_dest, user_name_dest, project_name_dest)
-
-    # user_del read from config too
-    delete_entries(workspace_id_dest, user_del, project_name_dest)
-
+    '''
+    # delete_entries(workspace_id_dest, user_del, project_name_dest)
+    
 
 if __name__ == "__main__":
     # execute only if run as a script

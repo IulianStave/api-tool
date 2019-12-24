@@ -8,6 +8,7 @@ default_config_json = 'local.config.json'
 api_key = ''
 url_base = ''
 workspace_id = ''
+workspace_name_source = ''
 workspace_name_dest = ''
 user_name = ''
 user_name_dest = ''
@@ -155,7 +156,7 @@ def add_workspace(workspace_name):
     if resp.status_code == 400:
         workspace_id = get_workspace_id(workspace_name)
         print(
-            f'Workspace \'{workspace_name}\' already exists Id: {workspace_id}'
+            f'Workspace {workspace_name!r} already exists Id: {workspace_id}'
         )
         return workspace_id
     else:
@@ -173,7 +174,7 @@ def get_args():
         action="store",
         dest='config_path',
         help='Store JSON configuration file'
-        )
+    )
     parser.add_argument(
         '-d',
         '--delete',
@@ -188,13 +189,13 @@ def get_args():
         default=False,
         dest='copy',
         help='Set a copy operation switch to true'
-        )
+    )
     parser.add_argument(
         '-v',
         '--version',
         action='version',
         version='%(prog)s 1.0'
-        )
+    )
     args = parser.parse_args()
     # print(f'JSON Configuration file = {args.config_path!r}')
     print(f'delete     = {args.delete!r}')
@@ -205,21 +206,21 @@ def get_args():
 def read_config(config_path=default_config_json):
     if not path.exists(config_path):
         print(f'JSON configuration file {config_path!r} not found')
-        print(f'It should follow the {default_config_json!r} structure')
+        print(f'It should follow the config.json structure')
         return False
-    with (open(config_path)) as file:
+    with open(config_path) as file:
         clockify_data = json.load(file)
     # unpack the keys from the dictionary to individual variables
-    print('\nReading clockify data from configuration file...')
+    print(f'\nReading clockify data from {config_path!r}...')
     for key, val in clockify_data.items():
         exec('global ' + key + '\n' + key + '=val')
-        print(f'{key:<20} =  {val}')
+        print(f'{key:<22} =  {val}')
     return clockify_data
 
 
 def add_time_entry(workspace_id, post_data):
-    PATH_ADD_TE = f'/workspaces/{workspace_id}/time-entries'
-    URL = f'{url_base}{PATH_ADD_TE}'
+    PATH = f'/workspaces/{workspace_id}/time-entries'
+    URL = f'{url_base}{PATH}'
     resp_add = requests.post(
         url=URL,
         headers={
@@ -230,7 +231,7 @@ def add_time_entry(workspace_id, post_data):
     )
     print(f'>>> Added time entry {post_data["description"]}'
           if resp_add.status_code == 201
-          else f'POST {PATH_ADD_TE} error code {resp_add.status_code}'
+          else f'POST {PATH} error code {resp_add.status_code}'
           )
 
 
@@ -286,6 +287,7 @@ def copy_time_entries(workspace_id, user_name, project_name,
 
 
 def main():
+    global workspace_id
     config_path = default_config_json
     args = get_args()
     if args.config_path:
@@ -293,41 +295,48 @@ def main():
     print(f'JSON configuration file = {config_path!r}')
     if not read_config(config_path):
         exit()
+    # In case the workspace id is not in JSON config
+    if workspace_name_source and not workspace_id:
+        workspace_id = get_workspace_id(workspace_name_source)
+        msg = 'workspace id '
+        print(f'{msg:<22} =  {workspace_id:<22}')
+    if not workspace_name_source and not workspace_id:
+        print(f'Neither workspace id nor workspace name is in {config_path!r}')
+        exit()
+    workspace_id_dest = get_workspace_id(workspace_name_dest)
     if args.copy:
         print(f'>>> Action chosen: copy time entries')
+        copy_time_entries(workspace_id, user_name, project_name_source,
+                          workspace_id_dest, user_name_dest, project_name_dest)
     if args.delete:
         print(f'>>> Action chosen: delete time entries')
+        delete_entries(workspace_id_dest, user_del, project_name_dest)
 
-
-
-    workspace_id_dest = get_workspace_id(workspace_name_dest)
-    # workspace_id_dest = add_workspace(workspace_name_dest)
-    # if workspace_id_dest == 'Error':
-    #     exit()
-    user_id_source = get_user_id(workspace_id, user_name)
-    project_id_dest = get_project_id(workspace_id_dest, project_name_dest)
-    # myuser = 'Some name'
-    # print(f'Checking for user id: {get_user_id(workspace_id, myuser)}')
-    # copy_time_entries(workspace_id, user_name, project_name_source,
-    #                   workspace_id_dest, user_name_dest, project_name_dest)
-    # user_del = 'Some name'
-
-    # print(f'Checking for user id: {get_user_id(workspace_id, user_del)}')
-    # delete_entries(workspace_id_dest, user_del, project_name_dest)
-    # copy_time_entries(workspace_id, user_name, project_name_source,
-    #                   workspace_id_dest, user_name_dest, project_name_dest)
-    # ws = 'Beta workspace'
-    # print(f'Checking for workspace {ws} id: {get_workspace_id(ws)}')
-    '''
-    copy_time_entries(workspace_id, user_name, project_name_source,
-                        workspace_id_dest, user_name_dest, project_name_dest)
-
-    '''
-    # delete_entries(workspace_id_dest, user_del, project_name_dest)
+    if not args.copy and not args.delete:
+        print(f'\nMissing action arguments (copy/delete)\n'
+              f'For help, run: python3 {__file__} -h\n')
 
 
 if __name__ == "__main__":
     # execute only if run as a script
     main()
 
+file_name = __file__.rsplit('.', 1)[0].rsplit('/')[0]
+print(f'''Sample of methods available as a module - after import {file_name}:
+      read_config() run as {file_name}.read_config()
+      read_config(filepath.json)
+      workspace_id_dest = {file_name}.get_workspace_id(api.workspace_name_dest)
+      copy_time_entries(workspace_id, user_name, project_name_source,
+                        workspace_id_dest, user_name_dest,project_name_dest)
+      delete_entries(workspace_id_dest, user_del, project_name_dest)
 
+      Caveat: use namespace followed by dot before variable or method
+      For instance, if namespace is {file_name},
+      execute delete_entries as follows:
+
+      project = {file_name}.project_name_dest
+      wd = {file_name}.workspace_name_dest
+      workspace_id_dest = {file_name}.get_workspace_id(wd)
+      api.delete_entries(workspace_id_dest, {file_name}.user_del, project)
+      '''
+      )

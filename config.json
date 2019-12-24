@@ -2,6 +2,7 @@
   "api_key": "F19HFUx5hMN3sEY",
   "url_base": "https://api.clockify.me/api/v1",
   "workspace_id": "74b0798723a75b7d61ea1c6b",
+  "workspace_name_source": "WS source",
   "workspace_name_dest": "Workspace Dest",
   "user_name": "John Smith",
   "user_name_dest": "John W Smith",

@@ -79,7 +79,7 @@ def delete_entry(workspace_id, entry_id):
     PATH = f'/workspaces/{workspace_id}/time-entries/{entry_id}'
     URL = f'{url_base}{PATH}'
     # print(f'Delete entry URL: {URL} \n')
-    time.sleep(1)
+    # time.sleep(5)
     r = requests.delete(
         url=URL,
         headers={
@@ -96,14 +96,15 @@ def delete_entries(workspace_id, user_name, project_name):
     # GET /workspaces/{workspaceId}/user/{userId}/time-entries
     user_id_source = get_user_id(workspace_id, user_name)
     project_id = get_project_id(workspace_id, project_name)
-    page_number = 1
+    page_counter = 1
     ended = False
     total_count = 0
     while not ended:
         # PATH = '/workspaces/{}/user/{}/time-entries/?page={}'.format(
         #     workspace_id, user_id_source, page_number)
+        page_top = 1
         PATH = (f'/workspaces/{workspace_id}/user/{user_id_source}'
-                f'/time-entries/?page={page_number}')
+                f'/time-entries/?page={page_top}')
         URL = f'{url_base}{PATH}'
         resp = requests.get(
             url=URL,
@@ -111,30 +112,27 @@ def delete_entries(workspace_id, user_name, project_name):
                 'X-Api-key': api_key,
             },
         )
-        print(f'Get time page {page_number} [Status code: {resp.status_code}]')
+        print(f'Page {page_counter} [Status code: {resp.status_code}]')
         counter = 0
         if resp.status_code == 200:
             data = resp.json()
-            total_entries = len(data)
-            print(f'>>> {total_entries} entries on page for all projects')
+            entries_on_page = len(data)
+            print(f'>>> {entries_on_page} entries on page for all projects')
             for entry in data:
                 if entry['projectId'] == project_id:
                     counter += 1
                     print(f'Entry {entry["description"]} '
                           f'id {entry["id"]} will be deleted')
-                    if counter == 25:
-                        print('Sleep - Pause for 60 seconds')
-                        time.sleep(60)
                     delete_entry(workspace_id, entry['id'])
-            print(f'{counter} out of {total_entries} deleted')
+            print(f'{counter} out of {entries_on_page} deleted')
             total_count += counter
-            if total_entries < 50:
+            if entries_on_page < 50:
                 ended = True
             else:
-                page_number += 1
-    total_entries_parsed = total_entries + 50*(page_number-1)
-    print(f'{page_number} pages parsed, or {total_entries_parsed} entries')
-    print(f'{total_count} deleted')
+                page_counter += 1
+    all_entries = entries_on_page + 50*(page_counter-1)
+    print(f'{page_counter} page(s) read')
+    print(f'{total_count} out of {all_entries} deleted')
 
 
 def add_workspace(workspace_name):
@@ -206,9 +204,9 @@ def get_args():
 def read_config(config_path=default_config_json):
     if not path.exists(config_path):
         print(f'JSON configuration file {config_path!r} not found')
-        print(f'It should follow the {default_config_json!r} structure')
+        print(f'It should follow the config.json structure')
         return False
-    with (open(config_path)) as file:
+    with open(config_path) as file:
         clockify_data = json.load(file)
     # unpack the keys from the dictionary to individual variables
     print(f'\nReading clockify data from {config_path!r}...')
@@ -219,8 +217,8 @@ def read_config(config_path=default_config_json):
 
 
 def add_time_entry(workspace_id, post_data):
-    PATH_ADD_TE = f'/workspaces/{workspace_id}/time-entries'
-    URL = f'{url_base}{PATH_ADD_TE}'
+    PATH = f'/workspaces/{workspace_id}/time-entries'
+    URL = f'{url_base}{PATH}'
     resp_add = requests.post(
         url=URL,
         headers={
@@ -231,7 +229,7 @@ def add_time_entry(workspace_id, post_data):
     )
     print(f'>>> Added time entry {post_data["description"]}'
           if resp_add.status_code == 201
-          else f'POST {PATH_ADD_TE} error code {resp_add.status_code}'
+          else f'POST {PATH} error code {resp_add.status_code}'
           )
 
 
@@ -295,7 +293,7 @@ def main():
     print(f'JSON configuration file = {config_path!r}')
     if not read_config(config_path):
         exit()
-    # cover the missing workspace id => get it based on name if passed
+    # In case the workspace id is not in JSON config
     if workspace_name_source and not workspace_id:
         workspace_id = get_workspace_id(workspace_name_source)
         msg = 'workspace id '
@@ -312,9 +310,9 @@ def main():
         print(f'>>> Action chosen: delete time entries')
         delete_entries(workspace_id_dest, user_del, project_name_dest)
 
-    if not args.copy or not args.delete:
+    if not args.copy and not args.delete:
         print(f'\nMissing action arguments (copy/delete)\n'
-              f'Run python3 {__file__} - h\n')
+              f'For help, run: python3 {__file__} -h\n')
 
 
 if __name__ == "__main__":
@@ -322,7 +320,7 @@ if __name__ == "__main__":
     main()
 
 file_name = __file__.rsplit('.', 1)[0].rsplit('/')[0]
-print(f'''Sample of methods available as package - after import {file_name}:
+print(f'''Sample of methods available as a module - after import {file_name}:
       read_config() run as {file_name}.read_config()
       read_config(filepath.json)
       workspace_id_dest = {file_name}.get_workspace_id(api.workspace_name_dest)
@@ -331,11 +329,12 @@ print(f'''Sample of methods available as package - after import {file_name}:
       delete_entries(workspace_id_dest, user_del, project_name_dest)
 
       Caveat: use namespace followed by dot before variable or method
-      For instance, if namespace is api, execute delelte_entries as follows:
+      For instance, if namespace is {file_name},
+      execute delete_entries as follows:
 
       project = {file_name}.project_name_dest
-      workspace_id_dest = {file_name}.\
-      get_workspace_id({file_name}.workspace_name_dest)
+      wd = {file_name}.workspace_name_dest
+      workspace_id_dest = {file_name}.get_workspace_id(wd)
       api.delete_entries(workspace_id_dest, {file_name}.user_del, project)
       '''
       )

@@ -1,3 +1,8 @@
+"""Clockify API tool - copies or delete time entries
+
+This script can also be imported as a module
+"""
+
 import requests
 import json
 import argparse
@@ -163,7 +168,7 @@ def add_workspace(workspace_name):
 
 def get_args():
     parser = argparse.ArgumentParser(
-        description='Python script: delete or copy Clockify time entries'
+        description=__doc__
     )
     parser.add_argument(
         '-j',
@@ -314,23 +319,3 @@ def main():
 if __name__ == "__main__":
     # execute only if run as a script
     main()
-
-file_name = __file__.rsplit('.', 1)[0].rsplit('/')[0]
-print(f'''Sample of methods available as a module - after import {file_name}:
-      read_config() run as {file_name}.read_config()
-      read_config(filepath.json)
-      workspace_id_dest = {file_name}.get_workspace_id(api.workspace_name_dest)
-      copy_time_entries(workspace_id, user_name, project_name_source,
-                        workspace_id_dest, user_name_dest,project_name_dest)
-      delete_entries(workspace_id_dest, user_del, project_name_dest)
-
-      Caveat: use namespace followed by dot before variable or method
-      For instance, if namespace is {file_name},
-      execute delete_entries as follows:
-
-      project = {file_name}.project_name_dest
-      wd = {file_name}.workspace_name_dest
-      workspace_id_dest = {file_name}.get_workspace_id(wd)
-      api.delete_entries(workspace_id_dest, {file_name}.user_del, project)
-      '''
-      )

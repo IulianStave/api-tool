@@ -82,8 +82,6 @@ def delete_entry(workspace_id, entry_id):
     # DELETE /workspaces/{workspaceId}/time-entries/{id}
     PATH = f'/workspaces/{workspace_id}/time-entries/{entry_id}'
     URL = f'{url_base}{PATH}'
-    # print(f'Delete entry URL: {URL} \n')
-    # time.sleep(5)
     r = requests.delete(
         url=URL,
         headers={
@@ -100,15 +98,14 @@ def delete_entries(workspace_id, user_name, project_name):
     # GET /workspaces/{workspaceId}/user/{userId}/time-entries
     user_id_source = get_user_id(workspace_id, user_name)
     project_id = get_project_id(workspace_id, project_name)
-    page_counter = 1
+    page = 1
     ended = False
-    total_count = 0
+    count_deleted = 0
     while not ended:
         # PATH = '/workspaces/{}/user/{}/time-entries/?page={}'.format(
         #     workspace_id, user_id_source, page_number)
-        page_top = 1
         PATH = (f'/workspaces/{workspace_id}/user/{user_id_source}'
-                f'/time-entries/?page={page_top}')
+                f'/time-entries')
         URL = f'{url_base}{PATH}'
         resp = requests.get(
             url=URL,
@@ -116,27 +113,27 @@ def delete_entries(workspace_id, user_name, project_name):
                 'X-Api-key': api_key,
             },
         )
-        print(f'Page {page_counter} [Status code: {resp.status_code}]')
+        print(f'Processing page {page} [Status code: {resp.status_code}]')
         counter = 0
         if resp.status_code == 200:
             data = resp.json()
             entries_on_page = len(data)
-            print(f'>>> {entries_on_page} entries on page for all projects')
+            print(f'> {entries_on_page} entries on page for all projects')
             for entry in data:
                 if entry['projectId'] == project_id:
                     counter += 1
                     print(f'Entry {entry["description"]} '
                           f'id {entry["id"]} will be deleted')
                     delete_entry(workspace_id, entry['id'])
-            print(f'{counter} out of {entries_on_page} deleted')
-            total_count += counter
+            print(f'>> {counter} deleted out of {entries_on_page} processed')
+            count_deleted += counter
             if entries_on_page < 50:
                 ended = True
             else:
-                page_counter += 1
-    all_entries = entries_on_page + 50*(page_counter-1)
-    print(f'{page_counter} page(s) read')
-    print(f'{total_count} out of {all_entries} deleted')
+                page += 1
+    all_entries = entries_on_page + 50*(page-1)
+    print(f'{page} page(s) processed')
+    print(f'Deleted {count_deleted} entries out of {all_entries} processed')
 
 
 def add_workspace(workspace_name):
@@ -242,12 +239,12 @@ def copy_time_entries(workspace_id, user_name, project_name,
         workspace_id, project_name_source)
     user_id_dest = get_user_id(workspace_id_dest, user_name_dest)
     project_id_dest = get_project_id(workspace_id_dest, project_name_dest)
-    page_number = 1
+    page = 1
     ended = False
-    total_count = 0
+    count_copied = 0
     while not ended:
         PATH = (f'/workspaces/{workspace_id}/user/{user_id_source}'
-                f'/time-entries/?page={page_number}')
+                f'/time-entries/?page={page}')
         URL = f'{url_base}{PATH}'
         resp = requests.get(
             url=URL,
@@ -255,12 +252,12 @@ def copy_time_entries(workspace_id, user_name, project_name,
                 'X-Api-key': api_key,
             }
         )
-        print(f'Get time page {page_number} [Status code: {resp.status_code}]')
+        print(f'Processing page {page} [Status code: {resp.status_code}]')
         counter = 0
         if resp.status_code == 200:
             data = resp.json()
-            total_entries = len(data)
-            print(f'>>> {total_entries} Entries on page for all projects')
+            entries_on_page = len(data)
+            print(f'>>> {entries_on_page} entries on page for all projects')
             for entry in data:
                 if entry['projectId'] == project_id_source:
                     counter += 1
@@ -274,15 +271,15 @@ def copy_time_entries(workspace_id, user_name, project_name,
                     new_entry['projectId'] = project_id_dest
                     new_entry['userId'] = user_id_dest
                     add_time_entry(workspace_id_dest, new_entry)
-            print(f'{counter} out of {total_entries} copied')
-            total_count += counter
-            if total_entries < 50:
+            print(f'{counter} out of {entries_on_page} copied')
+            count_copied += counter
+            if entries_on_page < 50:
                 ended = True
             else:
-                page_number += 1
-    total_entries_parsed = total_entries + 50*(page_number-1)
-    print(f'{page_number} pages parsed, or {total_entries_parsed} entries')
-    print(f'{total_count} copied')
+                page += 1
+    all_entries = entries_on_page + 50*(page - 1)
+    print(f'{page} page(s) processed')
+    print(f'Copied {count_copied} entries out of {all_entries} processed')
 
 
 def main():

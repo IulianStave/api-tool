@@ -1,6 +1,5 @@
 import requests
 import json
-import time
 import argparse
 from os import path
 
@@ -195,9 +194,6 @@ def get_args():
         version='%(prog)s 1.0'
     )
     args = parser.parse_args()
-    # print(f'JSON Configuration file = {args.config_path!r}')
-    print(f'delete     = {args.delete!r}')
-    print(f'copy       = {args.copy!r}')
     return args
 
 

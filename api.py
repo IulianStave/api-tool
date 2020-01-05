@@ -98,9 +98,10 @@ def delete_entries(workspace_id, user_name, project_name):
     # GET /workspaces/{workspaceId}/user/{userId}/time-entries
     user_id_source = get_user_id(workspace_id, user_name)
     project_id = get_project_id(workspace_id, project_name)
-    page = 1
+    page = 0
     ended = False
     count_deleted = 0
+    all_entries = 0
     while not ended:
         # PATH = '/workspaces/{}/user/{}/time-entries/?page={}'.format(
         #     workspace_id, user_id_source, page_number)
@@ -113,27 +114,34 @@ def delete_entries(workspace_id, user_name, project_name):
                 'X-Api-key': api_key,
             },
         )
-        print(f'Processing page {page} [Status code: {resp.status_code}]')
+        print(f'API requests - Status code: {resp.status_code}')
         counter = 0
         if resp.status_code == 200:
             data = resp.json()
             entries_on_page = len(data)
+            if not entries_on_page:
+                ended = True
+                continue
+            page += 1
+            print(f'Processing page {page}')
             print(f'> {entries_on_page} entries on page for all projects')
             for entry in data:
                 if entry['projectId'] == project_id:
                     counter += 1
-                    print(f'Entry {entry["description"]} '
-                          f'id {entry["id"]} will be deleted')
+                    # print(f'Entry {entry["description"]} '
+                    #       f'id {entry["id"]} will be deleted')
                     delete_entry(workspace_id, entry['id'])
             print(f'>> {counter} deleted out of {entries_on_page} processed')
             count_deleted += counter
             if entries_on_page < 50:
                 ended = True
-            else:
-                page += 1
-    all_entries = entries_on_page + 50*(page-1)
-    print(f'{page} page(s) processed')
-    print(f'Deleted {count_deleted} entries out of {all_entries} processed')
+                all_entries = entries_on_page + 50 * (page - 1)
+    if all_entries:
+        print(f'{page} page(s) processed')
+        print(f'{all_entries} time entries processed')
+        print(f'{count_deleted} time entries deleted')
+        return
+    print('There are no entries to delete')
 
 
 def add_workspace(workspace_name):
@@ -158,9 +166,8 @@ def add_workspace(workspace_name):
             f'Workspace {workspace_name!r} already exists Id: {workspace_id}'
         )
         return workspace_id
-    else:
-        print(f'POST /workspaces/ error code {resp.status_code}')
-        return 'Error'
+    print(f'POST /workspaces/ error code {resp.status_code}')
+    return 'Error'
 
 
 def get_args():

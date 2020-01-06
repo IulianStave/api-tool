@@ -1,4 +1,4 @@
-"""Clockify API tool - copies or delete time entries
+"""Clockify API tool - copies or deletes time entries
 
 This script can also be imported as a module
 """
@@ -10,7 +10,7 @@ from os import path
 
 default_config_json = 'local.config.json'
 api_key = ''
-url_base = ''
+url_base = 'https://api.clockify.me/api/v1'
 workspace_id = ''
 workspace_name_source = ''
 workspace_name_dest = ''
@@ -37,8 +37,8 @@ def get_user_id(workspace_id, user_name):
             # return filter(lambda x: x['name'] == user_name, data)['id']
             return [entry['id'] for entry in data
                     if entry['name'] == user_name][0]
-        except IndexError:
-            return f'Index Error: {user_name} not found'
+        except IndexError as err:
+            return err
 
 
 def get_project_id(workspace_id, project_name):
@@ -76,6 +76,40 @@ def get_workspace_id(workspace):
                     for entry in data if entry['name'] == workspace][0]
         except IndexError:
             return f'Index Error: {workspace} not found'
+
+
+def get_workspace_name(workspace_id):
+    """Checks for workspace existence
+    Returns None if not found, on success returns workspace name
+    """
+    PATH = '/workspaces'
+    URL = f'{url_base}{PATH}'
+    try:
+        resp = requests.get(
+            url=URL,
+            headers={
+                'X-Api-key': api_key,
+            }
+        )
+        resp.raise_for_status()
+        if resp.status_code == 200:
+            data = resp.json()
+            try:
+                return [entry['id']
+                        for entry in data if entry['id'] == workspace_id][0]
+            except IndexError:
+                # print(err)
+                print(f'Index Error: Workspace {workspace_id} not found')
+                return None
+    except requests.ConnectionError as err:
+        print('Connection error ::: ', err)
+        return None
+    except requests.HTTPError as err:
+        print('HTTP error ::: ', err)
+        return None
+    except requests.RequestException as err:
+        print('Ambigous Request error ::: ', err)
+        return None
 
 
 def delete_entry(workspace_id, entry_id):
@@ -323,3 +357,5 @@ def main():
 if __name__ == "__main__":
     # execute only if run as a script
     main()
+
+

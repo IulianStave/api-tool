@@ -37,8 +37,8 @@ def get_user_id(workspace_id, user_name):
             # return filter(lambda x: x['name'] == user_name, data)['id']
             return [entry['id'] for entry in data
                     if entry['name'] == user_name][0]
-        except IndexError as err:
-            return err
+        except IndexError:
+            return f'Index Error: {user_name} not found'
 
 
 def get_project_id(workspace_id, project_name):
@@ -80,6 +80,7 @@ def get_workspace_id(workspace):
 
 def get_workspace_name(workspace_id):
     """Checks for workspace existence
+
     Returns None if not found, on success returns workspace name
     """
     PATH = '/workspaces'
@@ -98,17 +99,22 @@ def get_workspace_name(workspace_id):
                 return [entry['id']
                         for entry in data if entry['id'] == workspace_id][0]
             except IndexError:
-                # print(err)
                 print(f'Index Error: Workspace {workspace_id} not found')
                 return None
     except requests.ConnectionError as err:
-        print('Connection error ::: ', err)
+        print(f'Connection error ::: {err}')
+        return None
+    except requests.Timeout as err:
+        print(f'Timeout error ::: {err}')
         return None
     except requests.HTTPError as err:
-        print('HTTP error ::: ', err)
+        print(f'HTTP error ::: {err}')
         return None
     except requests.RequestException as err:
-        print('Ambigous Request error ::: ', err)
+        print(f'Ambigous Request error ::: {err}')
+        return None
+    except KeyboardInterrupt:
+        print(f'CTRL-C pressed')
         return None
 
 
@@ -131,14 +137,15 @@ def delete_entry(workspace_id, entry_id):
 def delete_entries(workspace_id, user_name, project_name):
     # GET /workspaces/{workspaceId}/user/{userId}/time-entries
     user_id_source = get_user_id(workspace_id, user_name)
+    if user_id_source.startswith('Index Error'):
+        print(f'User with id {user_name} not found')
+        return
     project_id = get_project_id(workspace_id, project_name)
     page = 0
     ended = False
     count_deleted = 0
     all_entries = 0
     while not ended:
-        # PATH = '/workspaces/{}/user/{}/time-entries/?page={}'.format(
-        #     workspace_id, user_id_source, page_number)
         PATH = (f'/workspaces/{workspace_id}/user/{user_id_source}'
                 f'/time-entries')
         URL = f'{url_base}{PATH}'
@@ -276,6 +283,9 @@ def copy_time_entries(workspace_id, user_name, project_name,
                       workspace_id_dest, user_name_dest, project_name_dest):
     # GET /workspaces/{workspaceId}/user/{userId}/time-entries
     user_id_source = get_user_id(workspace_id, user_name)
+    if user_id_source.startswith('Index Error'):
+        print(f'User {user_name} not found')
+        return
     project_id_source = get_project_id(
         workspace_id, project_name_source)
     user_id_dest = get_user_id(workspace_id_dest, user_name_dest)
@@ -357,5 +367,3 @@ def main():
 if __name__ == "__main__":
     # execute only if run as a script
     main()
-
-
